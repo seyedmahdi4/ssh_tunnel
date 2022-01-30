@@ -1,0 +1,109 @@
+#!/usr/bin/python3
+
+try:
+    import psutil
+except:
+    print('error 404 - psutil not found')
+    print('pls : pip3 install psutil')
+    exit()
+
+
+import sys , os, json, socket, psutil
+from multiprocessing import Process 
+
+# set ip and user
+
+ip = "server1"
+user = 'tunel'
+
+
+
+#check config exist
+if not os.path.exists('.ssh.py.cache'):
+    with open(".ssh.py.cache",'w') as f: 
+            tmp=json.dumps({})
+            f.write(tmp)
+
+# check args
+if len(sys.argv) < 2 or len(sys.argv) > 4:
+  print ("use: ssh_tunnel LOCAL_PORT SERVER_PORT or 1 PORT for both")
+  print ("for kill use: ssh_tunnel LOCAL_PORT k")
+  exit()
+
+
+kill = 0
+try:
+    if sys.argv[2]=="k":
+        kill=1
+except:
+    pass
+
+port_local = str(sys.argv[1])
+
+def func():
+    if os.fork() != 0:
+        return
+
+
+    # save port from args
+    try:
+        port_server = str(sys.argv[2])
+    except:
+        port_server = str(sys.argv[1])
+
+    # command for ssh tunnel
+    command = f"ssh -N -L {port_local}:localhost:{port_server} {user}@{ip}"
+
+    with open(".ssh.py.cache","r") as f:    
+        tmp = json.load(f)
+        tmp.update({port_local:str(os.getpid())})
+        tmp=json.dumps(tmp)
+    with open(".ssh.py.cache","w") as f:   
+        f.write(tmp)
+
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('127.0.0.1',int(port_local)))
+    sock.close()
+    if result == 0:
+        print("port",port_local,"in local already in use")
+    else: 
+        print('tunnel is running in port ',port_local,'for close tunnel :')
+        print('$ ssh.py',port_local,'k')
+        os.system(command)
+        #subprocess.check_call(command.split())
+        #subprocess.check_call(['sleep','300'])
+        #print('tamon shod')
+
+def kill_pid(pid,include_parent=0):
+    try:
+        parent = psutil.Process(int(pid))
+    except psutil.Error:
+        return 
+
+    for child in parent.children(recursive=True):
+        child.kill()
+    
+    #os.kill(int(pid), signal.SIGKILL) #or signal.SIGKILL  signal.SIGTERM
+    print("killed!")
+    return 1
+
+
+def get_pid_from_port(port):
+    with open(".ssh.py.cache",'r') as f:
+        tmp = json.load(f)
+        kill_pid(tmp.get(port))
+        tmp.pop(port)
+        with open(".ssh.py.cache","w") as f:   
+            f.write(json.dumps(tmp))
+
+
+if __name__ == '__main__':
+    if not kill:
+        p = Process(target=func)
+        p.start()
+        p.join()
+        #print('done') 
+    else:
+        get_pid_from_port(port_local)
+        
