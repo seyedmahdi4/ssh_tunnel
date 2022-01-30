@@ -7,7 +7,6 @@ except:
     print('pls : pip3 install psutil')
     exit()
 
-
 import sys , os, json, socket, psutil
 from multiprocessing import Process 
 
@@ -16,11 +15,12 @@ from multiprocessing import Process
 ip = "server1"
 user = 'tunel'
 
-
+os.makedirs(os.environ['HOME']+"/.config", exist_ok=True)
+cache_path=os.environ['HOME']+"/.config/.ssh_tunnel.cache"
 
 #check config exist
-if not os.path.exists('.ssh.py.cache'):
-    with open(".ssh.py.cache",'w') as f: 
+if not os.path.exists(cache_path):
+    with open(cache_path,'w') as f: 
             tmp=json.dumps({})
             f.write(tmp)
 
@@ -29,7 +29,6 @@ if len(sys.argv) < 2 or len(sys.argv) > 4:
   print ("use: ssh_tunnel LOCAL_PORT SERVER_PORT or 1 PORT for both")
   print ("for kill use: ssh_tunnel LOCAL_PORT k")
   exit()
-
 
 kill = 0
 try:
@@ -44,7 +43,6 @@ def func():
     if os.fork() != 0:
         return
 
-
     # save port from args
     try:
         port_server = str(sys.argv[2])
@@ -54,11 +52,11 @@ def func():
     # command for ssh tunnel
     command = f"ssh -N -L {port_local}:localhost:{port_server} {user}@{ip}"
 
-    with open(".ssh.py.cache","r") as f:    
+    with open(cache_path,"r") as f:    
         tmp = json.load(f)
         tmp.update({port_local:str(os.getpid())})
         tmp=json.dumps(tmp)
-    with open(".ssh.py.cache","w") as f:   
+    with open(cache_path,"w") as f:   
         f.write(tmp)
 
 
@@ -69,7 +67,7 @@ def func():
         print("port",port_local,"in local already in use")
     else: 
         print('tunnel is running in port ',port_local,'for close tunnel :')
-        print('$ ssh.py',port_local,'k')
+        print('$ ssh_tunnel',port_local,'k')
         os.system(command)
         #subprocess.check_call(command.split())
         #subprocess.check_call(['sleep','300'])
@@ -90,13 +88,12 @@ def kill_pid(pid,include_parent=0):
 
 
 def get_pid_from_port(port):
-    with open(".ssh.py.cache",'r') as f:
+    with open(cache_path,'r') as f:
         tmp = json.load(f)
         kill_pid(tmp.get(port))
         tmp.pop(port)
-        with open(".ssh.py.cache","w") as f:   
+        with open(cache_path,"w") as f:   
             f.write(json.dumps(tmp))
-
 
 if __name__ == '__main__':
     if not kill:
@@ -105,5 +102,4 @@ if __name__ == '__main__':
         p.join()
         #print('done') 
     else:
-        get_pid_from_port(port_local)
-        
+        get_pid_from_port(port_local) 
