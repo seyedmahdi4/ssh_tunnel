@@ -7,6 +7,8 @@ except:
     print('pls : pip3 install psutil')
     exit()
 
+
+
 import sys , os, json, socket, psutil
 from multiprocessing import Process 
 
@@ -14,6 +16,8 @@ from multiprocessing import Process
 
 ip = "server1"
 user = 'tunel'
+
+
 
 os.makedirs(os.environ['HOME']+"/.config", exist_ok=True)
 cache_path=os.environ['HOME']+"/.config/.ssh_tunnel.cache"
@@ -30,6 +34,7 @@ if len(sys.argv) < 2 or len(sys.argv) > 4:
   print ("for kill use: ssh_tunnel LOCAL_PORT k")
   exit()
 
+
 kill = 0
 try:
     if sys.argv[2]=="k":
@@ -42,6 +47,7 @@ port_local = str(sys.argv[1])
 def func():
     if os.fork() != 0:
         return
+
 
     # save port from args
     try:
@@ -74,6 +80,9 @@ def func():
         #print('tamon shod')
 
 def kill_pid(pid,include_parent=0):
+    if pid == None:
+        print("no tunnel on this port!")
+        exit()
     try:
         parent = psutil.Process(int(pid))
     except psutil.Error:
@@ -95,6 +104,7 @@ def get_pid_from_port(port):
         with open(cache_path,"w") as f:   
             f.write(json.dumps(tmp))
 
+
 if __name__ == '__main__':
     if not kill:
         p = Process(target=func)
@@ -102,4 +112,5 @@ if __name__ == '__main__':
         p.join()
         #print('done') 
     else:
-        get_pid_from_port(port_local) 
+        get_pid_from_port(port_local)
+        
